@@ -1,0 +1,152 @@
+# In this problem, you will build a planner that makes a robot
+# car's lane decisions. On a highway, the left lane (in the US)
+# generally has a higher traffic speed than the right line. 
+#
+# In this problem, a 2 lane highway of length 5 could be
+# represented as:
+#
+
+
+road = [[80, 80, 80, 80, 80],
+        [60, 60, 60, 60, 60]]
+
+delta= [[0,1], # go right
+        [-1,1], # go up slanting
+        [1,1]]  # go down slanting
+
+init= [len(road)-1,0]
+goal= [len(road)-1,len(road[0])-1]
+
+heuristic=[[100 for row in range(len(road[0]))]for col in range(len(road))]
+l=len(heuristic[0])-1
+for x in range(len(heuristic)):
+    for y in range(len(heuristic[0])):
+        heuristic[x][y]=l-y
+
+for x in range(len(heuristic)):
+    heuristic[x][l]=100
+heuristic[goal[0]][goal[1]]=0
+
+
+
+
+#
+# In this case, the left lane has an average speed of 80 km/h and
+# the right lane has a speed of 60 km/h. We can use a 0 to indicate
+# an obstacle in the road.
+#
+# To get to a location as quickly as possible, we usually
+# want to be in the left lane. But there is a cost associated
+# with changing lanes. This means that for short trips, it is
+# sometimes optimal to stay in the right lane.
+#
+# -------------------
+# User Instructions
+#
+# Design a planner (any kind you like, so long as it works).
+# This planner should be a function named plan() that takes
+# as input four parameters: road, lane_change_cost, init, and
+# goal. See parameter info below.
+#
+# 
+# --------------------
+# Parameter Info
+#
+# road - A grid of values. Each value represents the speed associated
+#        with that cell. A value of 0 means the cell in non-navigable.
+#        The cost for traveling in a cell must be (1.0 / speed).
+#
+# lane_change_cost - The cost associated with changing lanes.
+#
+# init - The starting point for your car. This will always be somewhere
+#        in the right (bottom) lane to simulate a highway on-ramp.
+#
+# goal - The destination. This will always be in the right lane to
+#        simulate a highway exit-ramp.
+#
+
+
+import random
+
+# ------------------------------------------
+# build_road - Makes a road according to your specified length and
+# lane_speeds. lane_speeds is a list of speeds for the lanes (listed
+# from left lane to right). You can also include random obstacles.
+#
+def build_road(length, lane_speeds, print_flag = False, obstacles = False, obstacle_prob = 0.05):
+    num_lanes = len(lane_speeds)
+    road = [[lane_speeds[i] for dist in range(length)] for i in range(len(lane_speeds))]
+    if obstacles:
+        for x in range(len(road)):
+            for y in range(len(road[0])):
+                if random.random() < obstacle_prob:
+                    road[x][y] = 0
+    if print_flag:
+        for lane in road:
+            print '[' + ', '.join('%5.3f' % speed for speed in lane) + ']'
+    return road
+
+# ------------------------------------------
+# plan - Returns cost to get from init to goal on road given a
+# lane_change_cost.
+#
+def plan(road, lane_change_cost, init, goal): # Don't change the name of this function!
+    closed=[[1 for row in range(len(road[0]))]for col in range(len(road))]
+    expand=[[-1 for row in range(len(road[0]))]for col in range(len(road))]
+    x=init[0]
+    y=init[1]
+    count=0
+    cost=0
+    closed[x][y]=0
+    n=len(road[0])-1
+    
+    for z in range(len(road)-1):
+        closed[z][n]=0
+        
+    
+    expand[x][y]=count
+    h=heuristic[x][y]
+    g=1./road[x][y]
+    f=g+h
+    open=[[f,g,h,x,y]]
+    found=False
+    resign=False
+    
+    while not found and not resign:
+        if len(open)==0:
+            resign=True
+        else:
+            open.sort()
+            open.reverse()
+            next=open.pop()
+            x=next[3]
+            y=next[4]
+            g=next[1]
+            expand[x][y]=count
+            
+            if x==goal[0] and y==goal[1]:
+                found=True
+            else: 
+                for i in range(len(delta)):
+                    x2=x+delta[i][0]
+                    y2=y+delta[i][1]
+                    if x2>=0 and x2<len(road) and y2>=0 and y2<len(road[0]):
+                        if closed[x2][y2]==1 and road[x2][y2]>0:
+                            g2=g+1./(road[x2][y2])
+                            if x2!=x:
+                                g2=g2+lane_change_cost
+                                
+                            h2=heuristic[x2][y2]
+                            f2=g2+h2
+                            open.append([f2,g2,h2,x2,y2])
+                            closed[x2][y2]=0
+                            count+=1
+                            
+                cost=g2
+                                
+                
+    
+    return cost,expand
+    
+
+
